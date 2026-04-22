@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="3.119.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="RealmStudioShapeRenderingLib">
+      <HintPath>..\RealmStudioShapeRenderingLib\bin\Debug\net8.0\RealmStudioShapeRenderingLib.dll</HintPath>
+    </Reference>
+    <Reference Include="RealmStudioX.Core">
+      <HintPath>..\RealmStudioX.Core\bin\Debug\net8.0\RealmStudioX.Core.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
