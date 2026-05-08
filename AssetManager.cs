@@ -96,6 +96,10 @@ namespace RealmStudioX.Infrastructure
 
         public static MapTheme? CurrentTheme { get; set; }
 
+        public static List<NameGenerator> NameGenerators { get; } = [];
+        public static List<NameBase> NameBases { get; } = [];
+        public static List<NameBaseLanguage> NameLanguages { get; } = [];
+
 
         // Replace mutable public fields with properties
         public static string RootRealmStudioXDirectory { get; set; } = string.Empty;
@@ -216,11 +220,36 @@ namespace RealmStudioX.Infrastructure
 
             foreach (var file in files)
             {
-                var descriptor = CreateDescriptor(file);
-
-                if (descriptor != null)
+                // load name generators and namebases
+                if (file.Contains("NameGenerators"))
                 {
-                    AddDescriptor(descriptor);
+                    var extension = Path.GetExtension(file).ToLowerInvariant();
+
+                    // name generator or namebase files
+                    if (extension == ".csv" || extension == ".txt")
+                    {
+                        string assetName = Path.GetFileNameWithoutExtension(file);
+                        string path = Path.GetFullPath(file);
+
+                        if (Path.GetExtension(path).EndsWith("csv"))
+                        {
+                            LoadNameGeneratorFile(path);
+                        }
+                        else if (Path.GetExtension(path).EndsWith("txt"))
+                        {
+                            LoadNameBaseFile(path);
+                        }
+                    }
+                }
+                else
+                {
+                    // load descriptors
+                    var descriptor = CreateDescriptor(file);
+
+                    if (descriptor != null)
+                    {
+                        AddDescriptor(descriptor);
+                    }
                 }
             }
         }
@@ -347,6 +376,93 @@ namespace RealmStudioX.Infrastructure
             }
 
             return null;
+        }
+
+        private static void LoadNameBaseFile(string path)
+        {
+            IEnumerable<string> lines = File.ReadLines(path);
+
+            if (lines.Any())
+            {
+                NameBase nameBase = new()
+                {
+                    NameBaseName = Path.GetFileNameWithoutExtension(path)
+                };
+
+                foreach (var line in lines)
+                {
+                    string[] lineParts = line.Split('|');
+
+                    if (lineParts.Length == 6)
+                    {
+                        NameBaseLanguage language = new()
+                        {
+                            Language = lineParts[0].Trim(),
+                            MinNameLength = int.Parse(lineParts[1]),
+                            MaxNameLength = int.Parse(lineParts[2])
+                        };
+
+                        foreach (char c in lineParts[3])
+                        {
+                            language.RepeatableCharacters.Add(c);
+                        }
+
+                        language.SingleWordTransformProportion = float.Parse(lineParts[4]);
+
+                        string[] nameBaseNames = lineParts[5].Split(",");
+
+                        for (int i = 0; i < nameBaseNames.Length; i++)
+                        {
+                            nameBaseNames[i] = nameBaseNames[i].Trim();
+                        }
+
+                        language.NameStrings.AddRange(nameBaseNames);
+
+                        if (!string.IsNullOrEmpty(language.Language) && language.NameStrings.Count > 0)
+                        {
+                            nameBase.Languages.Add(language);
+                        }
+                    }
+                }
+
+                if (nameBase.Languages.Count > 0)
+                {
+                    NameBases.Add(nameBase);
+                }
+            }
+        }
+
+        private static void LoadNameGeneratorFile(string path)
+        {
+            IEnumerable<string> lines = File.ReadLines(path);
+
+            if (lines.Any())
+            {
+                NameGenerator generator = new()
+                {
+                    NameGeneratorName = Path.GetFileNameWithoutExtension(path)
+                };
+
+                foreach (var line in lines)
+                {
+                    string[] lineParts = line.Split(',');
+
+                    if (!string.IsNullOrEmpty(lineParts[0]))
+                    {
+                        generator.Column1.Add(lineParts[0].Trim());
+                    }
+
+                    if (lineParts.Length > 1)
+                    {
+                        if (!string.IsNullOrEmpty(lineParts[1]))
+                        {
+                            generator.Column2.Add(lineParts[1].Trim());
+                        }
+                    }
+                }
+
+                NameGenerators.Add(generator);
+            }
         }
 
         public List<MapSymbolDefinition> QuerySymbols(SymbolQuery query)
