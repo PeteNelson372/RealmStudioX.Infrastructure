@@ -21,13 +21,36 @@
 * support@brookmonte.com
 *
 ***************************************************************************************************************************/
+using System.ComponentModel;
+
 namespace RealmStudioX
 {
-    public sealed class NameBase : INameGenerator
+    public sealed class NameBase : INameGenerator, INotifyPropertyChanged
     {
         public Guid NameBaseGuid { get; set; } = Guid.NewGuid();
         public string NameBaseName { get; set; } = string.Empty;
-        public bool IsNameBaseSelected { get; set; } = true;
+
+        private bool _isNameBaseSelected = true;
+        public bool IsNameBaseSelected
+        {
+            get => _isNameBaseSelected;
+
+            set
+            {
+                if (_isNameBaseSelected != value)
+                {
+                    _isNameBaseSelected = value;
+
+                    PropertyChanged?.Invoke(
+                        this,
+                        new PropertyChangedEventArgs(
+                            nameof(IsNameBaseSelected)));
+                }
+            }
+        }
+
         public List<NameBaseLanguage> Languages { get; set; } = [];
+
+        public event PropertyChangedEventHandler? PropertyChanged;
     }
 }

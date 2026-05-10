@@ -21,14 +21,38 @@
 * support@brookmonte.com
 *
 ***************************************************************************************************************************/
+using System.ComponentModel;
+
 namespace RealmStudioX
 {
-    public sealed class NameGenerator : INameGenerator
+    public sealed class NameGenerator : INameGenerator, INotifyPropertyChanged
     {
         public Guid NameGeneratorGuid { get; set; }
         public string NameGeneratorName { get; set; } = string.Empty;
-        public bool IsSelected { get; set; }
-        public List<string> Column1 { get; set; } = new List<string>();
-        public List<string> Column2 { get; set; } = new List<string>();
+
+        private bool _isSelected = true;
+
+        public bool IsSelected
+        {
+            get => _isSelected;
+
+            set
+            {
+                if (_isSelected != value)
+                {
+                    _isSelected = value;
+
+                    PropertyChanged?.Invoke(
+                        this,
+                        new PropertyChangedEventArgs(
+                            nameof(IsSelected)));
+                }
+            }
+        }
+
+        public List<string> Column1 { get; set; } = [];
+        public List<string> Column2 { get; set; } = [];
+
+        public event PropertyChangedEventHandler? PropertyChanged;
     }
 }

@@ -424,7 +424,7 @@ namespace RealmStudioX.Infrastructure
             }
         }
 
-        internal static MapBox? ReadBoxAssetFromXml(string path)
+        public static MapBox? ReadBoxAssetFromXml(string path)
         {
             XmlSerializer? serializer = new(typeof(MapBox));
 
@@ -461,7 +461,7 @@ namespace RealmStudioX.Infrastructure
             }
         }
 
-        internal static void SerializeBoxAsset(MapBox box)
+        public static void SerializeBoxAsset(MapBox box)
         {
             if (!string.IsNullOrEmpty(box.BoxXmlFilePath))
             {

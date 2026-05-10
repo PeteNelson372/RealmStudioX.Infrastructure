@@ -21,16 +21,39 @@
 * support@brookmonte.com
 *
 ***************************************************************************************************************************/
+using System.ComponentModel;
+
 namespace RealmStudioX
 {
-    public sealed class NameBaseLanguage : INameGenerator
+    public sealed class NameBaseLanguage : INameGenerator, INotifyPropertyChanged
     {
-        public bool IsLanguageSelected { get; set; } = true;
+        private bool _isLanguageSelected = true;
+
+        public bool IsLanguageSelected
+        {
+            get => _isLanguageSelected;
+
+            set
+            {
+                if (_isLanguageSelected != value)
+                {
+                    _isLanguageSelected = value;
+
+                    PropertyChanged?.Invoke(
+                        this,
+                        new PropertyChangedEventArgs(
+                            nameof(IsLanguageSelected)));
+                }
+            }
+        }
+
         public string Language { get; set; } = string.Empty;
         public int MinNameLength { get; set; }
         public int MaxNameLength { get; set; }
         public List<char> RepeatableCharacters { get; set; } = [];
         public float SingleWordTransformProportion { get; set; }
         public List<string> NameStrings { get; set; } = [];
+
+        public event PropertyChangedEventHandler? PropertyChanged;
     }
 }

@@ -224,21 +224,17 @@ namespace RealmStudioX.Infrastructure
                 if (file.Contains("NameGenerators"))
                 {
                     var extension = Path.GetExtension(file).ToLowerInvariant();
-
+                    string path = Path.GetFullPath(file);
+                    
                     // name generator or namebase files
-                    if (extension == ".csv" || extension == ".txt")
-                    {
-                        string assetName = Path.GetFileNameWithoutExtension(file);
-                        string path = Path.GetFullPath(file);
+                    if (extension == ".csv")
+                    {                        
+                        LoadNameGeneratorFile(path);
+                    }
 
-                        if (Path.GetExtension(path).EndsWith("csv"))
-                        {
-                            LoadNameGeneratorFile(path);
-                        }
-                        else if (Path.GetExtension(path).EndsWith("txt"))
-                        {
-                            LoadNameBaseFile(path);
-                        }
+                    if (extension == ".txt")
+                    {
+                        LoadNameBaseFile(path);
                     }
                 }
                 else
@@ -398,6 +394,7 @@ namespace RealmStudioX.Infrastructure
                         NameBaseLanguage language = new()
                         {
                             Language = lineParts[0].Trim(),
+                            IsLanguageSelected = true,
                             MinNameLength = int.Parse(lineParts[1]),
                             MaxNameLength = int.Parse(lineParts[2])
                         };
@@ -421,6 +418,31 @@ namespace RealmStudioX.Infrastructure
                         if (!string.IsNullOrEmpty(language.Language) && language.NameStrings.Count > 0)
                         {
                             nameBase.Languages.Add(language);
+                        }
+
+                        if (!string.IsNullOrEmpty(language.Language))
+                        {
+                            if (!NameLanguages.Any(l =>
+                                    string.Equals(
+                                        l.Language,
+                                        language.Language,
+                                        StringComparison.OrdinalIgnoreCase)))
+                            {
+                                int index = NameLanguages.FindIndex(l =>
+                                    string.Compare(
+                                        language.Language,
+                                        l.Language,
+                                        StringComparison.OrdinalIgnoreCase) < 0);
+
+                                if (index >= 0)
+                                {
+                                    NameLanguages.Insert(index, language);
+                                }
+                                else
+                                {
+                                    NameLanguages.Add(language);
+                                }
+                            }
                         }
                     }
                 }
@@ -463,6 +485,16 @@ namespace RealmStudioX.Infrastructure
 
                 NameGenerators.Add(generator);
             }
+        }
+
+        public static List<INameGenerator> GetAllNameGenerators()
+        {
+            List<INameGenerator> nameGenList = [];
+
+            nameGenList.AddRange(NameGenerators);
+            nameGenList.AddRange(NameBases);
+            
+            return nameGenList;
         }
 
         public List<MapSymbolDefinition> QuerySymbols(SymbolQuery query)
