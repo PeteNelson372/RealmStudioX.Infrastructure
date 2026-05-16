@@ -78,6 +78,9 @@ namespace RealmStudioX.Infrastructure
         private readonly SymbolThumbnailCache _symbolThumbnailCache;
         public SymbolThumbnailCache SymbolThumbnailCache => _symbolThumbnailCache;
 
+        private readonly List<MapFrame> _mapFrames = [];
+        public List<MapFrame> MapFrames => _mapFrames;
+
         public static readonly string DefaultThemeName = "Medieval Quest";
 
         // Backing lists (private, mutable)
@@ -245,6 +248,25 @@ namespace RealmStudioX.Infrastructure
                     if (descriptor != null)
                     {
                         AddDescriptor(descriptor);
+                    }
+                }
+            }
+
+            // -------------------------------------------------
+            // Phase 3: Load Map Frames
+            // -------------------------------------------------
+
+            IReadOnlyList<AssetDescriptor> frames = GetByType(AssetType.Frame);
+
+            foreach (AssetDescriptor frameDescriptor in frames)
+            {
+                if (frameDescriptor.FileExtension.Equals(".xml", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    MapFrame? frame = MapFileMethods.ReadFrameAssetFromXml(frameDescriptor.FilePath);
+
+                    if (frame != null)
+                    {
+                        _mapFrames.Add(frame);
                     }
                 }
             }

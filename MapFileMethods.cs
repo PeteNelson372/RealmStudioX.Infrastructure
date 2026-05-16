@@ -330,7 +330,7 @@ namespace RealmStudioX.Infrastructure
             try
             {
                 // Uses the Deserialize method to restore the object's state
-                // with data from the XML document. */
+                // with data from the XML document.
                 symbolCollection = serializer.Deserialize(reader) as MapSymbolCollection;
 
                 return symbolCollection;
@@ -365,7 +365,7 @@ namespace RealmStudioX.Infrastructure
             }
         }
 
-        internal static MapFrame? ReadFrameAssetFromXml(string path)
+        public static MapFrame? ReadFrameAssetFromXml(string path)
         {
             XmlSerializer? serializer = new(typeof(MapFrame));
 
@@ -383,7 +383,7 @@ namespace RealmStudioX.Infrastructure
 
             try
             {
-                using XmlReader reader = XmlReader.Create(fs);
+                using XmlReader reader = new IgnoreNamespaceXmlTextReader(new StreamReader(fs));
 
                 // Uses the Deserialize method to restore the object's state
                 // with data from the XML document.
@@ -634,5 +634,15 @@ namespace RealmStudioX.Infrastructure
             var dir = Path.GetDirectoryName(originalPath)!;
             return Path.Combine(dir, "collectionx.xml");
         }
+    }
+
+    public class IgnoreNamespaceXmlTextReader : XmlTextReader
+    {
+        public IgnoreNamespaceXmlTextReader(TextReader reader)
+            : base(reader)
+        {
+        }
+
+        public override string NamespaceURI => "";
     }
 }
