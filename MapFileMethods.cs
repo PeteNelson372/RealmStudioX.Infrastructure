@@ -23,6 +23,7 @@
 ***************************************************************************************************************************/
 using RealmStudioShapeRenderingLib;
 using RealmStudioX.Core;
+using SkiaSharp;
 using System.Xml;
 using System.Xml.Serialization;
 namespace RealmStudioX.Infrastructure
@@ -138,7 +139,7 @@ namespace RealmStudioX.Infrastructure
                 // with data from the XML document. */
                 mapSet = serializer.Deserialize(reader) as RealmStudioMapSet;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 mapSet = null;
                 throw;
@@ -540,6 +541,41 @@ namespace RealmStudioX.Infrastructure
             {
                 serializer = null;
             }
+        }
+
+        public static MapBrush? LoadBrush(string filePath)
+        {
+            if (!File.Exists(filePath))
+            {
+                return null;
+            }
+
+            XmlSerializer serializer = new(typeof(MapBrush));
+
+            using FileStream stream = File.OpenRead(filePath);
+
+            MapBrush? brush = serializer.Deserialize(stream) as MapBrush;
+
+            if (brush == null)
+            {
+                return null;
+            }
+
+            // Resolve bitmap path relative to XML
+
+            string directory = Path.GetDirectoryName(filePath) ?? "";
+
+            foreach (string imgPath in brush.BrushImages)
+            {
+                string bmpPath = Path.Combine(directory, imgPath);
+
+                if (File.Exists(bmpPath))
+                {
+                    brush.BrushBitmaps.Add(SKBitmap.Decode(bmpPath));
+                }
+            }
+
+            return brush;
         }
 
         /*

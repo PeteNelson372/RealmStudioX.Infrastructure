@@ -24,6 +24,7 @@
 using RealmStudioShapeRenderingLib;
 using RealmStudioX.Core;
 using SkiaSharp;
+using System.Collections.ObjectModel;
 
 namespace RealmStudioX.Infrastructure
 {
@@ -80,6 +81,9 @@ namespace RealmStudioX.Infrastructure
 
         private readonly List<MapFrame> _mapFrames = [];
         public List<MapFrame> MapFrames => _mapFrames;
+
+        private readonly List<MapBrush> _mapBrushes = [];
+        public List<MapBrush> MapBrushes => _mapBrushes;
 
         public static readonly string DefaultThemeName = "Medieval Quest";
 
@@ -267,6 +271,31 @@ namespace RealmStudioX.Infrastructure
                     if (frame != null)
                     {
                         _mapFrames.Add(frame);
+                    }
+                }
+            }
+
+            // -------------------------------------------------
+            // Phase 4: Load Brushes
+            // -------------------------------------------------
+
+            AssetBrowser BrushBrowser = new(this, AssetType.Brush);
+
+            IReadOnlyList<AssetDescriptor> brushes = BrushBrowser.GetAssets();
+
+            foreach (AssetDescriptor brush in brushes)
+            {
+                // Resolve XML path relative from descriptor
+
+                string filename = Path.GetFileName(brush.FilePath);
+
+                if (filename.EndsWith(".brush.xml", StringComparison.OrdinalIgnoreCase))
+                {
+                    MapBrush? mapBrush = MapFileMethods.LoadBrush(brush.FilePath);
+
+                    if (mapBrush != null)
+                    {
+                        MapBrushes.Add(mapBrush);
                     }
                 }
             }
