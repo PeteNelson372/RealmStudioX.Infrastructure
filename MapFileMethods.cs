@@ -24,25 +24,25 @@
 using RealmStudioShapeRenderingLib;
 using RealmStudioX.Core;
 using SkiaSharp;
+using System.Diagnostics;
 using System.Xml;
 using System.Xml.Serialization;
 namespace RealmStudioX.Infrastructure
 {
-    [XmlInclude(typeof(MapLayer))]
     public static class MapFileMethods
     {
         private static void Serializer_UnknownNode(object? sender, XmlNodeEventArgs e)
         {
-            throw new Exception("Exception on Load. Unknown Node: " + e.Name + "\t" + e.Text);
+            Debug.WriteLine("Exception on Load. Unknown Node: " + e.Name + "\t" + e.Text);
         }
 
         private static void Serializer_UnknownAttribute(object? sender, XmlAttributeEventArgs e)
         {
             System.Xml.XmlAttribute attr = e.Attr;
-            throw new Exception("Exception on Load. Unknown Attribute: " + attr.Name + "\t" + attr.Value);
+            Debug.WriteLine("Exception on Load. Unknown Attribute: " + attr.Name + "\t" + attr.Value);
         }
 
-        internal static RealmStudioMapRoot? OpenMapRoot(string mapPath)
+        public static RealmStudioMapRoot? OpenMapRoot(string mapPath)
         {
             XmlSerializer? serializer = new(typeof(RealmStudioMapRoot));
             
@@ -78,7 +78,7 @@ namespace RealmStudioX.Infrastructure
             return mapRoot;
         }
 
-        internal static RealmStudioMap? OpenMap(string mapPath)
+        public static RealmStudioMap? OpenMap(string mapPath)
         {
             XmlSerializer? serializer = new(typeof(RealmStudioMap));
 
@@ -116,7 +116,7 @@ namespace RealmStudioX.Infrastructure
             return map;
         }
 
-        internal static RealmStudioMapSet? OpenMapSet(string mapSetPath)
+        public static RealmStudioMapSet? OpenMapSet(string mapSetPath)
         {
             XmlSerializer? serializer = new(typeof(RealmStudioMapSet));
 
@@ -153,7 +153,7 @@ namespace RealmStudioX.Infrastructure
             return mapSet;
         }
 
-        internal static void SaveMap(RealmStudioMap map)
+        public static void SaveMap(RealmStudioMap map)
         {
             using TextWriter? writer = new StreamWriter(map.MapPath);
             XmlSerializer? serializer = new(typeof(RealmStudioMap));
@@ -169,7 +169,7 @@ namespace RealmStudioX.Infrastructure
             }
         }
 
-        internal static void SaveMapSet(RealmStudioMapSet mapSet)
+        public static void SaveMapSet(RealmStudioMapSet mapSet)
         {
             using TextWriter? writer = new StreamWriter(mapSet.MapSetPath);
             XmlSerializer? serializer = new(typeof(RealmStudioMapSet));
@@ -185,7 +185,7 @@ namespace RealmStudioX.Infrastructure
             }
         }
 
-        internal static MapTheme? ReadThemeFromXml(string path)
+        public static MapTheme? ReadThemeFromXml(string path)
         {
             XmlSerializer? serializer = new(typeof(MapTheme));
 
@@ -250,7 +250,7 @@ namespace RealmStudioX.Infrastructure
         }
         */
 
-        internal static MapSymbolCollection? ReadCollection(string path)
+        public static MapSymbolCollection? ReadCollection(string path)
         {
             var isConverted = path.EndsWith(AssetManager.CollectionFileName, StringComparison.OrdinalIgnoreCase);
 
@@ -311,7 +311,7 @@ namespace RealmStudioX.Infrastructure
             return null;
         }
 
-        internal static MapSymbolCollection? ReadCollectionFromXml(string path)
+        public static MapSymbolCollection? ReadCollectionFromXml(string path)
         {
             XmlSerializer? serializer = new(typeof(MapSymbolCollection));
 
@@ -350,7 +350,7 @@ namespace RealmStudioX.Infrastructure
             }
         }
 
-        internal static void SerializeSymbolCollection(MapSymbolCollection collection)
+        public static void SerializeSymbolCollection(MapSymbolCollection collection)
         {
             if (collection.Name.Length > 0 && collection.Path.Length > 0)
             {
@@ -402,7 +402,7 @@ namespace RealmStudioX.Infrastructure
             }
         }
 
-        internal static void SerializeFrameAsset(MapFrame frame)
+        public static void SerializeFrameAsset(MapFrame frame)
         {
             if (!string.IsNullOrEmpty(frame.FrameXmlFilePath))
             {
@@ -484,7 +484,7 @@ namespace RealmStudioX.Infrastructure
                 }
             }
         }
-        internal static void SerializeLabelPreset(LabelPreset preset)
+        public static void SerializeLabelPreset(LabelPreset preset)
         {
             if (!string.IsNullOrEmpty(preset.PresetXmlFilePath))
             {
@@ -507,7 +507,7 @@ namespace RealmStudioX.Infrastructure
             }
         }
 
-        internal static LabelPreset? ReadLabelPreset(string path)
+        public static LabelPreset? ReadLabelPreset(string path)
         {
             XmlSerializer? serializer = new(typeof(LabelPreset));
 

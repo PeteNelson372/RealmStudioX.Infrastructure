@@ -24,7 +24,6 @@
 using RealmStudioShapeRenderingLib;
 using RealmStudioX.Core;
 using SkiaSharp;
-using System.Collections.ObjectModel;
 
 namespace RealmStudioX.Infrastructure
 {
