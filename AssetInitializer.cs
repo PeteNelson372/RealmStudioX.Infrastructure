@@ -122,7 +122,19 @@ namespace RealmStudioX.Infrastructure
                         case DrawnStamp drawnStamp:
                             if (!string.IsNullOrEmpty(drawnStamp.StampPath) && File.Exists(drawnStamp.StampPath))
                             {
-                                drawnStamp.StampImage = SKImage.FromBitmap(SKBitmap.Decode(drawnStamp.StampPath));
+                                SKBitmap img = SKBitmap.Decode(drawnStamp.StampPath);
+
+                                SKRect r = new(
+                                (float)(drawnStamp.TopLeft.X - map.MapWidth * drawnStamp.Scale / 2f),
+                                (float)(drawnStamp.TopLeft.Y - map.MapHeight * drawnStamp.Scale / 2f),
+                                (float)(drawnStamp.TopLeft.X + map.MapWidth * drawnStamp.Scale / 2f),
+                                (float)(drawnStamp.TopLeft.Y + map.MapHeight * drawnStamp.Scale / 2f));
+
+                                using SKBitmap resized = Utilities.ResizeBitmap(img, (int)r.Width, (int)r.Height);
+
+                                using SKBitmap stampBitmap = Utilities.SetBitmapOpacity(resized, drawnStamp.Opacity);
+
+                                drawnStamp.StampImage = SKImage.FromBitmap(stampBitmap);
                             }
                             break;
                         case DrawnTriangle drawnTriangle:

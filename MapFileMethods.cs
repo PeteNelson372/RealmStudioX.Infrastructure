@@ -25,6 +25,7 @@ using RealmStudioShapeRenderingLib;
 using RealmStudioX.Core;
 using SkiaSharp;
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Xml;
 using System.Xml.Serialization;
 namespace RealmStudioX.Infrastructure
@@ -42,83 +43,308 @@ namespace RealmStudioX.Infrastructure
             Debug.WriteLine("Exception on Load. Unknown Attribute: " + attr.Name + "\t" + attr.Value);
         }
 
-        public static RealmStudioMapRoot? OpenMapRoot(string mapPath)
+
+        public static RealmStudioMap DeserializeMap(string xml)
         {
-            XmlSerializer? serializer = new(typeof(RealmStudioMapRoot));
-            
+            XmlSerializer serializer = new(typeof(RealmStudioMap));
+
             // If the XML document has been altered with unknown
             // nodes or attributes, handle them with the
             // UnknownNode and UnknownAttribute events.
             serializer.UnknownNode += new XmlNodeEventHandler(Serializer_UnknownNode);
             serializer.UnknownAttribute += new XmlAttributeEventHandler(Serializer_UnknownAttribute);
-            
-            // A FileStream is needed to read the XML document.            
-            FileStream fs = new(mapPath, FileMode.Open);
-            using XmlReader reader = XmlReader.Create(fs);
 
-            // Declares an object variable of the type to be deserialized.
-            RealmStudioMapRoot? mapRoot;
-            try
-            {
-                // Uses the Deserialize method to restore the object's state
-                // with data from the XML document. */
-                mapRoot = serializer.Deserialize(reader) as RealmStudioMapRoot;
-            }
-            catch (Exception ex)
-            {
-                mapRoot = null;
-                throw new Exception("Exception deserializing " + mapPath + ": " + ex.Message);
-            }
-            finally
-            {
-                serializer = null;
-                fs.Dispose();
-            }
+            using StringReader reader = new(xml);
 
-            return mapRoot;
+            return (RealmStudioMap)serializer.Deserialize(reader)!;
         }
+
 
         public static RealmStudioMap? OpenMap(string mapPath)
         {
-            XmlSerializer? serializer = new(typeof(RealmStudioMap));
-
-            // If the XML document has been altered with unknown
-            // nodes or attributes, handle them with the
-            // UnknownNode and UnknownAttribute events.
-            serializer.UnknownNode += new XmlNodeEventHandler(Serializer_UnknownNode);
-            serializer.UnknownAttribute += new XmlAttributeEventHandler(Serializer_UnknownAttribute);
-
-            // A FileStream is needed to read the XML document.            
-            FileStream fs = new(mapPath, FileMode.Open);
-            using XmlReader reader = XmlReader.Create(fs);
-
-            // Declares an object variable of the type to be deserialized.
-            RealmStudioMap? map;
-
-            try
-            {
-                // Uses the Deserialize method to restore the object's state
-                // with data from the XML document. */
-                map = serializer.Deserialize(reader) as RealmStudioMap;
-
-            }
-            catch (Exception ex)
-            {
-                map = null;
-                throw new Exception("Exception deserializing " + mapPath + ": " + ex.Message);
-            }
-            finally
-            {
-                serializer = null;
-                fs.Dispose();
-            }
+            string xml = File.ReadAllText(mapPath);
+            RealmStudioMap map = DeserializeMap(xml);
 
             return map;
         }
 
-        public static RealmStudioMapSet? OpenMapSet(string mapSetPath)
+        public static string SerializeMap(RealmStudioMap map)
         {
-            XmlSerializer? serializer = new(typeof(RealmStudioMapSet));
+            XmlSerializer serializer = new(typeof(RealmStudioMap));
+
+            using StringWriter writer = new();
+
+            serializer.Serialize(writer, map);
+
+            return writer.ToString();
+        }
+
+
+        public static void SaveMap(RealmStudioMap map)
+        {
+            string xml = SerializeMap(map);
+
+            File.WriteAllText(map.MapPath, xml);
+        }
+
+        public static void SaveProject(string projectPath, RealmStudioProject project)
+        {
+            if (File.Exists(projectPath))
+            {
+                File.Delete(projectPath);
+            }
+
+            using ZipArchive archive = ZipFile.Open(projectPath, ZipArchiveMode.Create);
+
+            //--------------------------------------------------
+            // Build manifest
+            //--------------------------------------------------
+
+            project.Metadata.ProjectFilePath = projectPath;
+
+            ProjectManifest manifest = new()
+            {
+                FormatVersion = RealmStudioProject.ProjectFormatVersion,
+                ActiveMapId = project.ActiveMapId,
+                Metadata = project.Metadata
+            };
+
+            foreach (MapProjectEntry mapEntry in project.Maps)
+            {
+                string mapName = mapEntry.Map.MapName;
+                string mapId = mapEntry.MapId;
+
+                string folder = $"Maps/{mapEntry.MapId}/";
+
+                manifest.Maps.Add(
+                    new ProjectMapManifest
+                    {
+                        MapId = mapEntry.MapId,
+                        MapName = mapEntry.Metadata.Name,
+
+                        MapFile =
+                            folder + $"{mapId}.rsmx",
+
+                        MetadataFile =
+                            folder + $"{mapId}.metadata.xml",
+
+                        PreviewFile =
+                            folder + $"{mapId}.png"
+                    });
+            }
+
+            //--------------------------------------------------
+            // Save project.xml
+            //--------------------------------------------------
+
+            string manifestXml =
+                SerializeObject(manifest);
+
+            ZipArchiveEntry projectEntry = archive.CreateEntry("project.xml");
+
+            using (StreamWriter writer = new(projectEntry.Open()))
+            {
+                writer.Write(manifestXml);
+            }
+
+            //--------------------------------------------------
+            // Save maps
+            //--------------------------------------------------
+
+            foreach (MapProjectEntry mapEntry in project.Maps)
+            {
+                string folder = $"Maps/{mapEntry.MapId}/";
+
+                //
+                // Map
+                //
+
+                string mapXml = SerializeMap(mapEntry.Map);
+
+                ZipArchiveEntry mapFile = archive.CreateEntry(folder + $"{mapEntry.MapId}.rsmx");
+
+                using (StreamWriter writer = new(mapFile.Open()))
+                {
+                    writer.Write(mapXml);
+                }
+
+                //
+                // Metadata
+                //
+
+                string metadataXml = SerializeObject(mapEntry.Metadata);
+
+                ZipArchiveEntry metadataFile =
+                    archive.CreateEntry(
+                        folder +
+                        $"{mapEntry.MapId}.metadata.xml");
+
+                using (StreamWriter writer =
+                    new(metadataFile.Open()))
+                {
+                    writer.Write(metadataXml);
+                }
+
+                //
+                // Preview
+                //
+
+                if (mapEntry.Preview != null && mapEntry.Preview.ByteCount > 0)
+                {
+                    ZipArchiveEntry previewFile =
+                        archive.CreateEntry(folder + $"{mapEntry.MapId}.png");
+
+                    using Stream stream = previewFile.Open();
+
+                    using SKData data =
+                        mapEntry.Preview.Encode(SKEncodedImageFormat.Png, 100);
+
+                    data.SaveTo(stream);
+                }
+            }
+        }
+
+        public static RealmStudioProject OpenProject(
+            string projectPath)
+        {
+            using ZipArchive archive =
+                ZipFile.OpenRead(projectPath);
+
+            //--------------------------------------------------
+            // Load project.xml
+            //--------------------------------------------------
+
+            ZipArchiveEntry? projectEntry =
+                archive.GetEntry("project.xml");
+
+            if (projectEntry == null)
+            {
+                throw new Exception(
+                    "project.xml not found.");
+            }
+
+            string manifestXml;
+
+            using (StreamReader reader =
+                new(projectEntry.Open()))
+            {
+                manifestXml = reader.ReadToEnd();
+            }
+
+            ProjectManifest manifest =  DeserializeObject<ProjectManifest>(manifestXml);
+
+            RealmStudioProject project = new()
+            {
+                Metadata = manifest.Metadata,
+                ActiveMapId = manifest.ActiveMapId
+            };
+
+            //--------------------------------------------------
+            // Load maps
+            //--------------------------------------------------
+
+            foreach (ProjectMapManifest mapManifest in manifest.Maps)
+            {
+                //
+                // Map
+                //
+
+                ZipArchiveEntry? mapFile = archive.GetEntry(mapManifest.MapFile);
+
+                if (mapFile == null)
+                {
+                    continue;
+                }
+
+                string mapXml;
+
+                using (StreamReader reader = new(mapFile.Open()))
+                {
+                    mapXml = reader.ReadToEnd();
+                }
+
+                RealmStudioMap map = DeserializeMap(mapXml);
+
+                //
+                // Metadata
+                //
+
+                MapMetadata metadata = new();
+
+                ZipArchiveEntry? metadataFile =
+                    archive.GetEntry(
+                        mapManifest.MetadataFile);
+
+                if (metadataFile != null)
+                {
+                    string metadataXml;
+
+                    using (StreamReader reader =
+                        new(metadataFile.Open()))
+                    {
+                        metadataXml =
+                            reader.ReadToEnd();
+                    }
+
+                    metadata =
+                        DeserializeObject<MapMetadata>(
+                            metadataXml);
+                }
+
+                //
+                // Preview
+                //
+
+                SKBitmap? preview = null;
+
+                ZipArchiveEntry? previewFile = archive.GetEntry(mapManifest.PreviewFile);
+
+                if (previewFile != null)
+                {
+                    using Stream zipStream = previewFile.Open();
+
+                    using MemoryStream ms = new();
+
+                    zipStream.CopyTo(ms);
+
+                    byte[] bytes = ms.ToArray();
+
+                    preview = SKBitmap.Decode(bytes);
+
+                    if (preview == null)
+                    {
+                        preview = new SKBitmap();
+                    }
+                }
+
+                project.Maps.Add(
+                    new MapProjectEntry
+                    {
+                        MapId = mapManifest.MapId,
+                        Map = map,
+                        Metadata = metadata,
+                        Preview = preview
+                    });
+            }
+
+            return project;
+        }
+
+        private static void SaveMap(MapProjectEntry entry, ZipArchive archive)
+        {
+            string mapXml = SerializeMap(entry.Map);
+
+            ZipArchiveEntry mapEntry = archive.CreateEntry($"Maps/{entry.MapId}.rsmx");
+
+            using (StreamWriter writer = new(mapEntry.Open()))
+            {
+                writer.Write(mapXml);
+            }
+        }
+
+        public static string SerializeObject<T>(T obj)
+        {
+            XmlSerializer serializer = new(typeof(T));
 
             // If the XML document has been altered with unknown
             // nodes or attributes, handle them with the
@@ -126,63 +352,26 @@ namespace RealmStudioX.Infrastructure
             serializer.UnknownNode += new XmlNodeEventHandler(Serializer_UnknownNode);
             serializer.UnknownAttribute += new XmlAttributeEventHandler(Serializer_UnknownAttribute);
 
-            // A FileStream is needed to read the XML document.            
-            FileStream fs = new(mapSetPath, FileMode.Open);
-            using XmlReader reader = XmlReader.Create(fs);
+            using StringWriter writer = new();
 
-            // Declares an object variable of the type to be deserialized.
-            RealmStudioMapSet? mapSet;
+            serializer.Serialize(writer, obj);
 
-            try
-            {
-                // Uses the Deserialize method to restore the object's state
-                // with data from the XML document. */
-                mapSet = serializer.Deserialize(reader) as RealmStudioMapSet;
-            }
-            catch (Exception)
-            {
-                mapSet = null;
-                throw;
-            }
-            finally
-            {
-                serializer = null;
-                fs.Dispose();
-            }
-
-            return mapSet;
+            return writer.ToString();
         }
 
-        public static void SaveMap(RealmStudioMap map)
+        public static T DeserializeObject<T>(string xml)
         {
-            using TextWriter? writer = new StreamWriter(map.MapPath);
-            XmlSerializer? serializer = new(typeof(RealmStudioMap));
+            XmlSerializer serializer = new(typeof(T));
 
-            try
-            {
-                // Serializes the map and closes the TextWriter.
-                serializer.Serialize(writer, map);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Exception serializing " + map.MapPath + " Message: " + ex.Message);
-            }
-        }
+            // If the XML document has been altered with unknown
+            // nodes or attributes, handle them with the
+            // UnknownNode and UnknownAttribute events.
+            serializer.UnknownNode += new XmlNodeEventHandler(Serializer_UnknownNode);
+            serializer.UnknownAttribute += new XmlAttributeEventHandler(Serializer_UnknownAttribute);
 
-        public static void SaveMapSet(RealmStudioMapSet mapSet)
-        {
-            using TextWriter? writer = new StreamWriter(mapSet.MapSetPath);
-            XmlSerializer? serializer = new(typeof(RealmStudioMapSet));
+            using StringReader reader = new(xml);
 
-            try
-            {
-                // Serializes the map and closes the TextWriter.
-                serializer.Serialize(writer, mapSet);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Exception serializing " + mapSet.MapSetPath + " Message: " + ex.Message);
-            }
+            return (T)serializer.Deserialize(reader)!;
         }
 
         public static MapTheme? ReadThemeFromXml(string path)
