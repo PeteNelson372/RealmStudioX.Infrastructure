@@ -79,6 +79,12 @@ namespace RealmStudioX.Infrastructure
             return writer.ToString();
         }
 
+        public static void SaveMap(RealmStudioMap map, Stream stream)
+        {
+            XmlSerializer serializer = new(typeof(RealmStudioMap));
+
+            serializer.Serialize(stream, map);
+        }
 
         public static void SaveMap(RealmStudioMap map)
         {
@@ -89,117 +95,152 @@ namespace RealmStudioX.Infrastructure
 
         public static void SaveProject(string projectPath, RealmStudioProject project)
         {
-            if (File.Exists(projectPath))
+            // save the project using an atomic save with backup to prevent loss of the project
+
+            string projectTmpPath = projectPath + ".tmp";
+            string projectBackupPath = projectPath + ".backup";
+
+            try
             {
-                File.Delete(projectPath);
-            }
+                using ZipArchive archive = ZipFile.Open(projectTmpPath, ZipArchiveMode.Create);
 
-            using ZipArchive archive = ZipFile.Open(projectPath, ZipArchiveMode.Create);
+                //--------------------------------------------------
+                // Build manifest
+                //--------------------------------------------------
 
-            //--------------------------------------------------
-            // Build manifest
-            //--------------------------------------------------
+                project.Metadata.ProjectFilePath = projectPath;
 
-            project.Metadata.ProjectFilePath = projectPath;
+                ProjectManifest manifest = new()
+                {
+                    FormatVersion = RealmStudioProject.ProjectFormatVersion,
+                    ActiveMapId = project.ActiveMapId,
+                    Metadata = project.Metadata
+                };
 
-            ProjectManifest manifest = new()
-            {
-                FormatVersion = RealmStudioProject.ProjectFormatVersion,
-                ActiveMapId = project.ActiveMapId,
-                Metadata = project.Metadata
-            };
+                foreach (MapProjectEntry mapEntry in project.Maps)
+                {
+                    string mapName = mapEntry.Map.MapName;
+                    string mapId = mapEntry.MapId;
 
-            foreach (MapProjectEntry mapEntry in project.Maps)
-            {
-                string mapName = mapEntry.Map.MapName;
-                string mapId = mapEntry.MapId;
+                    string folder = $"Maps/{mapEntry.MapId}/";
 
-                string folder = $"Maps/{mapEntry.MapId}/";
+                    manifest.Maps.Add(
+                        new ProjectMapManifest
+                        {
+                            MapId = mapEntry.MapId,
+                            MapName = mapEntry.Metadata.Name,
 
-                manifest.Maps.Add(
-                    new ProjectMapManifest
+                            MapFile =
+                                folder + $"{mapId}.rsmx",
+
+                            MetadataFile =
+                                folder + $"{mapId}.metadata.xml",
+
+                            PreviewFile =
+                                folder + $"{mapId}.png"
+                        });
+                }
+
+                //--------------------------------------------------
+                // Save project.xml
+                //--------------------------------------------------
+
+                string manifestXml =
+                    SerializeObject(manifest);
+
+                ZipArchiveEntry projectEntry = archive.CreateEntry("project.xml");
+
+                using (StreamWriter writer = new(projectEntry.Open()))
+                {
+                    writer.Write(manifestXml);
+                }
+
+                //--------------------------------------------------
+                // Save maps
+                //--------------------------------------------------
+
+                foreach (MapProjectEntry mapEntry in project.Maps)
+                {
+                    string folder = $"Maps/{mapEntry.MapId}/";
+
+                    //
+                    // Map
+                    //
+
+                    string mapXml = SerializeMap(mapEntry.Map);
+
+                    ZipArchiveEntry mapFile = archive.CreateEntry(folder + $"{mapEntry.MapId}.rsmx");
+
+                    using (StreamWriter writer = new(mapFile.Open()))
                     {
-                        MapId = mapEntry.MapId,
-                        MapName = mapEntry.Metadata.Name,
+                        writer.Write(mapXml);
+                    }
 
-                        MapFile =
-                            folder + $"{mapId}.rsmx",
+                    //
+                    // Metadata
+                    //
 
-                        MetadataFile =
-                            folder + $"{mapId}.metadata.xml",
+                    string metadataXml = SerializeObject(mapEntry.Metadata);
 
-                        PreviewFile =
-                            folder + $"{mapId}.png"
-                    });
-            }
+                    ZipArchiveEntry metadataFile =
+                        archive.CreateEntry(
+                            folder +
+                            $"{mapEntry.MapId}.metadata.xml");
 
-            //--------------------------------------------------
-            // Save project.xml
-            //--------------------------------------------------
+                    using (StreamWriter writer =
+                        new(metadataFile.Open()))
+                    {
+                        writer.Write(metadataXml);
+                    }
 
-            string manifestXml =
-                SerializeObject(manifest);
+                    //
+                    // Preview
+                    //
 
-            ZipArchiveEntry projectEntry = archive.CreateEntry("project.xml");
+                    if (mapEntry.Preview != null && mapEntry.Preview.ByteCount > 0)
+                    {
+                        ZipArchiveEntry previewFile =
+                            archive.CreateEntry(folder + $"{mapEntry.MapId}.png");
 
-            using (StreamWriter writer = new(projectEntry.Open()))
-            {
-                writer.Write(manifestXml);
-            }
+                        using Stream stream = previewFile.Open();
 
-            //--------------------------------------------------
-            // Save maps
-            //--------------------------------------------------
+                        using SKData data =
+                            mapEntry.Preview.Encode(SKEncodedImageFormat.Png, 100);
 
-            foreach (MapProjectEntry mapEntry in project.Maps)
-            {
-                string folder = $"Maps/{mapEntry.MapId}/";
-
-                //
-                // Map
-                //
-
-                string mapXml = SerializeMap(mapEntry.Map);
-
-                ZipArchiveEntry mapFile = archive.CreateEntry(folder + $"{mapEntry.MapId}.rsmx");
-
-                using (StreamWriter writer = new(mapFile.Open()))
-                {
-                    writer.Write(mapXml);
+                        data.SaveTo(stream);
+                    }
                 }
 
-                //
-                // Metadata
-                //
-
-                string metadataXml = SerializeObject(mapEntry.Metadata);
-
-                ZipArchiveEntry metadataFile =
-                    archive.CreateEntry(
-                        folder +
-                        $"{mapEntry.MapId}.metadata.xml");
-
-                using (StreamWriter writer =
-                    new(metadataFile.Open()))
+                if (File.Exists(projectPath))
                 {
-                    writer.Write(metadataXml);
+                    File.Replace(
+                        projectTmpPath,
+                        projectPath,
+                        projectBackupPath);
                 }
-
-                //
-                // Preview
-                //
-
-                if (mapEntry.Preview != null && mapEntry.Preview.ByteCount > 0)
+                else
                 {
-                    ZipArchiveEntry previewFile =
-                        archive.CreateEntry(folder + $"{mapEntry.MapId}.png");
-
-                    using Stream stream = previewFile.Open();
-
-                    using SKData data =
-                        mapEntry.Preview.Encode(SKEncodedImageFormat.Png, 100);
-
-                    data.SaveTo(stream);
+                    File.Move(
+                        projectTmpPath,
+                        projectPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                // log the error
+            }
+            finally
+            {
+                try
+                {
+                    if (File.Exists(projectTmpPath))
+                    {
+                        File.Delete(projectTmpPath);
+                    }
+                }
+                catch
+                {
+                    // Ignore cleanup errors
                 }
             }
         }

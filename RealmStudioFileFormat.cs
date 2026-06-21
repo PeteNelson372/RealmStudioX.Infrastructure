@@ -4,6 +4,7 @@
     {
         public const string RawMapExtension = ".rsmx";
         public const string PackageExtension = ".rsmpkz";
+        public const string MapRecoveryFileExtension = ".rsmrx";
 
         public const string MetadataXmlFileName = "metadata.xml";
         public const string PreviewImageFileName = "preview.png";
