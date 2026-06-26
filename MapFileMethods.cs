@@ -102,7 +102,7 @@ namespace RealmStudioX.Infrastructure
             lock (_saveLock)
             {
                 string projectTmpPath = projectPath + ".tmp";
-                string projectBackupPath = projectPath + ".backup";
+                string projectBackupPath = projectPath + RealmStudioFileFormat.BackupFileExtension;
 
                 try
                 {
@@ -219,6 +219,9 @@ namespace RealmStudioX.Infrastructure
                         }
                     }
 
+                    // validate the project zip file
+                    ValidateProjectFile(projectTmpPath);
+
                     if (File.Exists(projectPath))
                     {
                         File.Replace(
@@ -237,6 +240,7 @@ namespace RealmStudioX.Infrastructure
                 {
                     // log the error
                     RealmStudioXLogger.Exception("MapFileMethods.SaveProject", ex);
+                    throw;
                 }
                 finally
                 {
@@ -252,6 +256,21 @@ namespace RealmStudioX.Infrastructure
                         // Ignore cleanup errors
                     }
                 }
+            }
+        }
+
+        private static void ValidateProjectFile(string projectFilePath)
+        {
+            // the only validation that is done is to open the project;
+            // if it can be opened, it (presumably) is valid
+            try
+            {
+                RealmStudioProject project = OpenProject(projectFilePath);
+            }
+            catch (Exception ex)
+            {
+                RealmStudioXLogger.Exception($"Error validating project: {projectFilePath}", ex);
+                throw;
             }
         }
 
@@ -271,6 +290,11 @@ namespace RealmStudioX.Infrastructure
             using (StreamReader reader = new(projectEntry.Open()))
             {
                 manifestXml = reader.ReadToEnd();
+            }
+
+            if (string.IsNullOrEmpty(manifestXml))
+            {
+                throw new Exception("Project is invalid. No XML data found for project manifest");
             }
 
             ProjectManifest manifest = DeserializeObject<ProjectManifest>(manifestXml);
@@ -295,7 +319,7 @@ namespace RealmStudioX.Infrastructure
 
                 if (mapFile == null)
                 {
-                    continue;
+                    throw new Exception("Project is invalid. MapFile entry is null."); ;
                 }
 
                 string mapXml;
@@ -303,6 +327,11 @@ namespace RealmStudioX.Infrastructure
                 using (StreamReader reader = new(mapFile.Open()))
                 {
                     mapXml = reader.ReadToEnd();
+                }
+
+                if (string.IsNullOrEmpty(mapXml))
+                {
+                    throw new Exception("Project is invalid. No XML data for map.");
                 }
 
                 RealmStudioMap map = DeserializeMap(mapXml);
@@ -322,6 +351,11 @@ namespace RealmStudioX.Infrastructure
                     using (StreamReader reader = new(metadataFile.Open()))
                     {
                         metadataXml = reader.ReadToEnd();
+                    }
+
+                    if (string.IsNullOrEmpty(metadataXml))
+                    {
+                        throw new Exception("Project is invalid. No XML data for map metadata.");
                     }
 
                     metadata = DeserializeObject<MapMetadata>(metadataXml);
@@ -359,8 +393,6 @@ namespace RealmStudioX.Infrastructure
                         Preview = preview != null ? preview : new SKBitmap()
                     });
             }
-
-            archive.Dispose();
 
             return project;
         }

@@ -6,6 +6,10 @@
         public const string PackageExtension = ".rsmpkz";
         public const string MapRecoveryFileExtension = ".rsmrx";
 
+        public const string MapCrashFileExtension = ".rsmcshx";
+
+        public const string BackupFileExtension = ".backup";
+
         public const string MetadataXmlFileName = "metadata.xml";
         public const string PreviewImageFileName = "preview.png";
 
