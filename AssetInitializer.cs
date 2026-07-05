@@ -203,15 +203,16 @@ namespace RealmStudioX.Infrastructure
                     }
                     else
                     {
-                        SKBitmap _colorizedBrushBitmap =
+                        SKBitmap scaledBrushBitmap = Utilities.ScaleSKBitmap(
+                            bitmap,
+                            brush.BrushSize / (float)bitmap.Width);
+
+                        SKBitmap colorizedBrushBitmap =
                             Utilities.BuildColorizedBrushBitmap(
-                                bitmap,
+                                scaledBrushBitmap,
                                 brush.Color);
 
-                        brush?.Bitmaps.Add(
-                            Utilities.ScaleSKBitmap(
-                            _colorizedBrushBitmap,
-                            brush.BrushSize / (float)_colorizedBrushBitmap.Width));
+                        brush?.Bitmaps.Add(colorizedBrushBitmap);
                     }
                 }
 

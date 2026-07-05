@@ -608,6 +608,10 @@ namespace RealmStudioX.Infrastructure
             {
                 return AssetType.LabelPreset;
             }
+            else if (topFolder.Equals("palettes", StringComparison.OrdinalIgnoreCase))
+            {
+                return AssetType.ColorPalette;
+            }
             else if (topFolder.Equals("symbols", StringComparison.OrdinalIgnoreCase))
             {
                 return AssetType.Symbol;
@@ -622,7 +626,7 @@ namespace RealmStudioX.Infrastructure
             }
             else if (topFolder.Equals("themes", StringComparison.OrdinalIgnoreCase))
             {
-                return AssetType.Symbol;
+                return AssetType.Theme;
             }
 
             return _folderTypeMap.TryGetValue(topFolder, out var type)
