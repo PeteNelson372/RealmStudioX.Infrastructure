@@ -280,7 +280,7 @@ namespace RealmStudioX.Infrastructure
 
             AssetBrowser BrushBrowser = new(this, AssetType.Brush);
 
-            IReadOnlyList<AssetDescriptor> brushes = BrushBrowser.GetAssets();
+            IReadOnlyList<AssetDescriptor> brushes = BrushBrowser.Assets;
 
             foreach (AssetDescriptor brush in brushes)
             {
@@ -397,6 +397,20 @@ namespace RealmStudioX.Infrastructure
                     metadata: metadata,
                     collection: ExtractCollection(relativePath),
                     tags: ExtractTags(relativePath));
+            }
+
+            if (extension == RealmStudioFileFormat.RealmStudioLabelPresetExtension)
+            {
+                return new AssetDescriptor(
+                    id: GenerateId(relativePath),
+                    name: name,
+                    type: assetType,
+                    symbolType: MapSymbolType.NotSet,
+                    filePath: filePath,
+                    metadataPath: metadataPath,
+                    metadata: metadata,
+                    collection: null,
+                    tags: null);
             }
 
             // -------------------------------------------------

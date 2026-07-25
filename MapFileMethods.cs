@@ -470,8 +470,8 @@ namespace RealmStudioX.Infrastructure
             catch (Exception ex)
             {
                 theme = null;
-                throw new Exception("Exception deserializing " + path + " Message: " + ex.Message);
-
+                RealmStudioXLogger.Exception($"An exception occured deserializing theme from {path}", ex);
+                throw;
             }
             finally
             {
@@ -479,12 +479,12 @@ namespace RealmStudioX.Infrastructure
             }
         }
 
-        /*
-        internal static void SerializeTheme(MapTheme theme)
+
+        public static void SerializeTheme(MapTheme theme, string themePath)
         {
-            if (theme.ThemeName != null && theme.ThemeName.Length > 0 && theme.ThemePath != null && theme.ThemePath.Length > 0)
+            if (theme.ThemeName != null && theme.ThemeName.Length > 0 && !string.IsNullOrEmpty(themePath))
             {
-                TextWriter? writer = new StreamWriter(theme.ThemePath);
+                TextWriter? writer = new StreamWriter(themePath);
                 XmlSerializer? serializer = new(typeof(MapTheme));
 
                 try
@@ -494,10 +494,7 @@ namespace RealmStudioX.Infrastructure
                 }
                 catch (Exception ex)
                 {
-                    Program.LOGGER.Error("Error saving theme: " + ex.Message);
-
-                    MessageBox.Show("Error saving theme: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
-
+                    RealmStudioXLogger.Exception($"An exception occured serializing theme to {themePath}", ex);
                     throw;
                 }
                 finally
@@ -506,7 +503,7 @@ namespace RealmStudioX.Infrastructure
                 }
             }
         }
-        */
+
 
         public static MapSymbolCollection? ReadCollection(string path)
         {
@@ -742,11 +739,13 @@ namespace RealmStudioX.Infrastructure
                 }
             }
         }
-        public static void SerializeLabelPreset(LabelPreset preset)
+
+
+        public static void SerializeLabelPreset(LabelPreset preset, string filePath)
         {
-            if (!string.IsNullOrEmpty(preset.PresetXmlFilePath))
+            if (!string.IsNullOrEmpty(filePath))
             {
-                TextWriter? writer = new StreamWriter(preset.PresetXmlFilePath);
+                TextWriter? writer = new StreamWriter(filePath);
                 XmlSerializer? serializer = new(typeof(LabelPreset));
 
                 try

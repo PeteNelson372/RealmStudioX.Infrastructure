@@ -6,7 +6,6 @@ namespace RealmStudioX.Infrastructure
     public sealed class AssetBrowser
     {
         private readonly AssetManager _assetManager;
-
         private readonly List<AssetDescriptor> _assets;
 
         private int _index;
@@ -34,12 +33,10 @@ namespace RealmStudioX.Infrastructure
 
             _assets =
             [
-                ..types
-                    .SelectMany(
-                        t => manager.GetByType(t))
-                    .DistinctBy(
-                        a => a.Name)
-                    .OrderBy( a => a.Name)
+                .. types
+                    .SelectMany(t => manager.GetByType(t))
+                    .DistinctBy(a => a.Name)
+                    .OrderBy(a => a.Name)
             ];
         }
 
@@ -47,19 +44,23 @@ namespace RealmStudioX.Infrastructure
         // Properties
         // -------------------------------------------------
 
+        public IReadOnlyList<AssetDescriptor> Assets => _assets;
+
         public AssetDescriptor? Current =>
             _assets.Count == 0
                 ? null
                 : _assets[_index];
 
-        public bool HasAssets =>
-            _assets.Count > 0;
+        public SKImage? CurrentImage =>
+            Current == null
+                ? null
+                : _assetManager.GetImage(Current.Id);
 
-        public int Count =>
-            _assets.Count;
+        public bool HasAssets => _assets.Count > 0;
 
-        public int CurrentIndex =>
-            _index;
+        public int Count => _assets.Count;
+
+        public int CurrentIndex => _index;
 
         // -------------------------------------------------
         // Navigation
@@ -67,46 +68,46 @@ namespace RealmStudioX.Infrastructure
 
         public void Next()
         {
-            if (_assets.Count == 0)
+            if (!HasAssets)
             {
                 return;
             }
 
-            _index =
-                (_index + 1) % _assets.Count;
+            _index = (_index + 1) % _assets.Count;
         }
 
         public void Previous()
         {
-            if (_assets.Count == 0)
+            if (!HasAssets)
             {
                 return;
             }
 
-            _index =
-                (_index - 1 + _assets.Count)
-                % _assets.Count;
+            _index = (_index - 1 + _assets.Count) % _assets.Count;
         }
 
         // -------------------------------------------------
         // Selection
         // -------------------------------------------------
 
-        public bool SelectById(string id)
+        public bool SelectById(string? id)
         {
-            if (_assets.Count == 0)
+            if (!HasAssets || string.IsNullOrWhiteSpace(id))
             {
                 return false;
             }
 
-            int index =
-                _assets.FindIndex(
-                    a => a.Id == id);
+            int index = _assets.FindIndex(a =>
+                a.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
 
-            if (index < 0 ||
-                index == _index)
+            if (index < 0)
             {
                 return false;
+            }
+
+            if (index == _index)
+            {
+                return true;
             }
 
             _index = index;
@@ -116,45 +117,24 @@ namespace RealmStudioX.Infrastructure
 
         public bool SelectByIndex(int index)
         {
-            if (_assets.Count == 0)
+            if (!HasAssets)
             {
                 return false;
             }
 
-            if (index < 0 ||
-                index >= _assets.Count)
+            if (index < 0 || index >= _assets.Count)
             {
                 return false;
+            }
+
+            if (index == _index)
+            {
+                return true;
             }
 
             _index = index;
 
             return true;
-        }
-
-        // -------------------------------------------------
-        // Asset access
-        // -------------------------------------------------
-
-        public AssetDescriptor? GetCurrentAsset()
-        {
-            return Current;
-        }
-
-        public SKImage? GetCurrentImage()
-        {
-            if (Current == null)
-            {
-                return null;
-            }
-
-            return _assetManager.GetImage(
-                Current.Id);
-        }
-
-        public IReadOnlyList<AssetDescriptor> GetAssets()
-        {
-            return _assets;
         }
     }
 }

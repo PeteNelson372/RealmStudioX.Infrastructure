@@ -8,6 +8,10 @@
 
         public const string MapCrashFileExtension = ".rsmcshx";
 
+        public const string RealmStudioThemeExtension = ".rstx";
+
+        public const string RealmStudioLabelPresetExtension = ".rslpx";
+
         public const string BackupFileExtension = ".backup";
 
         public const string MetadataXmlFileName = "metadata.xml";

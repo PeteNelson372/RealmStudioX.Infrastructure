@@ -156,7 +156,7 @@ namespace RealmStudioX.Infrastructure
                                 {
                                     AssetBrowser brushBrowser = new(assetManager, AssetType.Brush);
 
-                                    IReadOnlyList<AssetDescriptor> brushAssets = brushBrowser.GetAssets();
+                                    IReadOnlyList<AssetDescriptor> brushAssets = brushBrowser.Assets;
 
                                     foreach (string imageName in paintedLine.Brush.SourceBrush.BrushImages)
                                     {
