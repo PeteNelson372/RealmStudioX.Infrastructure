@@ -443,6 +443,18 @@ namespace RealmStudioX.Infrastructure
             return (T)serializer.Deserialize(reader)!;
         }
 
+        public static object DeserializeObject(Type objectType, string xml)
+        {
+            XmlSerializer serializer = new(objectType);
+
+            serializer.UnknownNode += Serializer_UnknownNode;
+            serializer.UnknownAttribute += Serializer_UnknownAttribute;
+
+            using StringReader reader = new(xml);
+
+            return serializer.Deserialize(reader)!;
+        }
+
         public static MapTheme? ReadThemeFromXml(string path)
         {
             XmlSerializer? serializer = new(typeof(MapTheme));
