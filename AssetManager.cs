@@ -155,6 +155,34 @@ namespace RealmStudioX.Infrastructure
             _vegetationSynonymsFilePath = Path.Combine(_defaultSymbolDirectory, "VegetationSynonyms.txt");
 
             // -------------------------------------------------
+            // Clear existing data before loading new assets
+            // -------------------------------------------------
+
+            _descriptors.Clear();
+            _symbolDefinitions.Clear();
+            _symbolByPath.Clear();
+
+            _mapSymbolCollections.Clear();
+
+            _symbolImageCache.Clear();
+            _symbolThumbnailCache.Clear();
+            _symbolDefinitions.Clear();
+            
+            _symbolIndex.Clear();
+
+            _mapFrames.Clear();
+            _mapBrushes.Clear();
+
+            NameGenerators.Clear();
+            NameBases.Clear();
+            NameLanguages.Clear();
+
+            s_symbolTags.Clear();
+            s_structureSynonyms.Clear();
+            s_terrainSynonyms.Clear();
+            s_vegetationSynonyms.Clear();
+
+            // -------------------------------------------------
             // Load global tag/synonym files
             // -------------------------------------------------
 
@@ -163,9 +191,6 @@ namespace RealmStudioX.Infrastructure
             s_terrainSynonyms = [.. File.ReadAllLines(_terrainSynonymsFilePath)];
             s_vegetationSynonyms = [.. File.ReadAllLines(_vegetationSynonymsFilePath)];
 
-            _descriptors.Clear();
-            _symbolDefinitions.Clear();
-            _symbolByPath.Clear();
 
             // -------------------------------------------------
             // Phase 1: Load symbol collections FIRST
