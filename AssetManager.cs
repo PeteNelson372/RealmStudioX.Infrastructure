@@ -651,6 +651,10 @@ namespace RealmStudioX.Infrastructure
             {
                 return AssetType.ColorPalette;
             }
+            else if (topFolder.Equals("heightmappalettes", StringComparison.OrdinalIgnoreCase))
+            {
+                return AssetType.HeightMapPalette;
+            }
             else if (topFolder.Equals("symbols", StringComparison.OrdinalIgnoreCase))
             {
                 return AssetType.Symbol;
