@@ -84,8 +84,6 @@ namespace RealmStudioX.Infrastructure
         private readonly List<MapBrush> _mapBrushes = [];
         public List<MapBrush> MapBrushes => _mapBrushes;
 
-        public static readonly string DefaultThemeName = "Medieval Quest";
-
         // Backing lists (private, mutable)
         private static readonly List<string> s_originalSymbolTags = [];
         private static HashSet<string> s_symbolTags = [];
@@ -107,20 +105,6 @@ namespace RealmStudioX.Infrastructure
         public static List<NameBaseLanguage> NameLanguages { get; } = [];
 
 
-        // Replace mutable public fields with properties
-        public static string RootRealmStudioXDirectory { get; set; } = string.Empty;
-        public static string RootRealmsDirectory { get; set; } = string.Empty;
-        public static string RootAssetDirectory { get; set; } = string.Empty;
-
-        private static string _defaultModelsDirectory = string.Empty;
-        private static string _defaultSymbolDirectory = string.Empty;
-        private static string _symbolTagsFilePath = string.Empty;
-
-        private static string _structureSynonymsFilePath = string.Empty;
-        private static string _terrainSynonymsFilePath = string.Empty;
-        private static string _vegetationSynonymsFilePath = string.Empty;
-
-
         public static readonly string CollectionFileName = "collectionx.xml";
         public static readonly string LegacyCollectionFileName = "collection.xml";
 
@@ -137,22 +121,42 @@ namespace RealmStudioX.Infrastructure
 
         public async Task LoadAsync()
         {
-            if (string.IsNullOrEmpty(RootRealmStudioXDirectory) || !Directory.Exists(RootRealmStudioXDirectory))
+            if (string.IsNullOrEmpty(ApplicationPreferences.Current.RootRealmStudioXDirectory) || !Directory.Exists(ApplicationPreferences.Current.RootRealmStudioXDirectory))
             {
-                throw new InvalidOperationException($"Root RealmStudioX directory '{RootRealmStudioXDirectory}' does not exist.");
+                ApplicationPreferences.Current.RootRealmStudioXDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RealmStudioX");
+                ApplicationPreferences.Current.Save();
+
+                if (string.IsNullOrEmpty(ApplicationPreferences.Current.RootRealmStudioXDirectory) || !Directory.Exists(ApplicationPreferences.Current.RootRealmStudioXDirectory))
+                {
+                    throw new InvalidOperationException($"Root RealmStudioX directory '{ApplicationPreferences.Current.RootRealmStudioXDirectory}' does not exist.");
+                }
             }
 
-            RootRealmsDirectory = Path.Combine(RootRealmStudioXDirectory, "Realms");
-            RootAssetDirectory = Path.Combine(RootRealmStudioXDirectory, "Assets");
+            if (string.IsNullOrEmpty(ApplicationPreferences.Current.RootRealmsDirectory) || !Directory.Exists(ApplicationPreferences.Current.RootRealmsDirectory))
+            {
+                ApplicationPreferences.Current.RootRealmsDirectory = Path.Combine(ApplicationPreferences.Current.RootRealmStudioXDirectory, "Realms");
+            }
 
-            _defaultModelsDirectory = Path.Combine(RootRealmsDirectory, "Models");
+            if (string.IsNullOrEmpty(ApplicationPreferences.Current.RootAssetDirectory) || !Directory.Exists(ApplicationPreferences.Current.RootAssetDirectory))
+            {
+                ApplicationPreferences.Current.RootAssetDirectory = Path.Combine(ApplicationPreferences.Current.RootRealmStudioXDirectory, "Assets");
+            }
 
-            _defaultSymbolDirectory = Path.Combine(RootAssetDirectory, "Symbols");
+            if (string.IsNullOrEmpty(ApplicationPreferences.Current.AutosaveDirectory) || !Directory.Exists(ApplicationPreferences.Current.AutosaveDirectory))
+            {
+                ApplicationPreferences.Current.AutosaveDirectory = Path.Combine(ApplicationPreferences.Current.RootRealmsDirectory);
+            }
 
-            _symbolTagsFilePath = Path.Combine(_defaultSymbolDirectory, "SymbolTags.txt");
-            _structureSynonymsFilePath = Path.Combine(_defaultSymbolDirectory, "StructureSynonyms.txt");
-            _terrainSynonymsFilePath = Path.Combine(_defaultSymbolDirectory, "TerrainSynonyms.txt");
-            _vegetationSynonymsFilePath = Path.Combine(_defaultSymbolDirectory, "VegetationSynonyms.txt");
+            ApplicationPreferences.Current.DefaultModelsDirectory = Path.Combine(ApplicationPreferences.Current.RootAssetDirectory, "Models");
+
+            ApplicationPreferences.Current.DefaultSymbolDirectory = Path.Combine(ApplicationPreferences.Current.RootAssetDirectory, "Symbols");
+
+            ApplicationPreferences.Current.SymbolTagsFilePath = Path.Combine(ApplicationPreferences.Current.DefaultSymbolDirectory, "SymbolTags.txt");
+            ApplicationPreferences.Current.StructureSynonymsFilePath = Path.Combine(ApplicationPreferences.Current.DefaultSymbolDirectory, "StructureSynonyms.txt");
+            ApplicationPreferences.Current.TerrainSynonymsFilePath = Path.Combine(ApplicationPreferences.Current.DefaultSymbolDirectory, "TerrainSynonyms.txt");
+            ApplicationPreferences.Current.VegetationSynonymsFilePath = Path.Combine(ApplicationPreferences.Current.DefaultSymbolDirectory, "VegetationSynonyms.txt");
+
+            ApplicationPreferences.Current.Save();
 
             // -------------------------------------------------
             // Clear existing data before loading new assets
@@ -186,10 +190,10 @@ namespace RealmStudioX.Infrastructure
             // Load global tag/synonym files
             // -------------------------------------------------
 
-            s_symbolTags = [.. File.ReadAllLines(_symbolTagsFilePath)];
-            s_structureSynonyms = [.. File.ReadAllLines(_structureSynonymsFilePath)];
-            s_terrainSynonyms = [.. File.ReadAllLines(_terrainSynonymsFilePath)];
-            s_vegetationSynonyms = [.. File.ReadAllLines(_vegetationSynonymsFilePath)];
+            s_symbolTags = [.. File.ReadAllLines(ApplicationPreferences.Current.SymbolTagsFilePath)];
+            s_structureSynonyms = [.. File.ReadAllLines(ApplicationPreferences.Current.StructureSynonymsFilePath)];
+            s_terrainSynonyms = [.. File.ReadAllLines(ApplicationPreferences.Current.TerrainSynonymsFilePath)];
+            s_vegetationSynonyms = [.. File.ReadAllLines(ApplicationPreferences.Current.VegetationSynonymsFilePath)];
 
 
             // -------------------------------------------------
@@ -197,8 +201,8 @@ namespace RealmStudioX.Infrastructure
             // -------------------------------------------------
 
             var directories = Directory
-                .EnumerateDirectories(RootAssetDirectory, "*", SearchOption.AllDirectories)
-                .Prepend(RootAssetDirectory); // include root itself
+                .EnumerateDirectories(ApplicationPreferences.Current.RootAssetDirectory, "*", SearchOption.AllDirectories)
+                .Prepend(ApplicationPreferences.Current.RootAssetDirectory); // include root itself
 
             foreach (var dir in directories)
             {
@@ -246,7 +250,7 @@ namespace RealmStudioX.Infrastructure
             // -------------------------------------------------
 
             var files = Directory
-                .EnumerateFiles(RootAssetDirectory, "*.*", SearchOption.AllDirectories)
+                .EnumerateFiles(ApplicationPreferences.Current.RootAssetDirectory, "*.*", SearchOption.AllDirectories)
                 .ToList();
 
             foreach (var file in files)
@@ -395,7 +399,7 @@ namespace RealmStudioX.Infrastructure
         private AssetDescriptor? CreateDescriptor(string filePath)
         {
             var extension = Path.GetExtension(filePath).ToLowerInvariant();
-            var relativePath = Path.GetRelativePath(RootAssetDirectory, filePath);
+            var relativePath = Path.GetRelativePath(ApplicationPreferences.Current.RootAssetDirectory, filePath);
 
             var assetType = ResolveAssetType(relativePath);
             if (assetType == AssetType.None)
