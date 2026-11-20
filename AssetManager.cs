@@ -142,6 +142,11 @@ namespace RealmStudioX.Infrastructure
                 ApplicationPreferences.Current.RootAssetDirectory = Path.Combine(ApplicationPreferences.Current.RootRealmStudioXDirectory, "Assets");
             }
 
+            if (string.IsNullOrEmpty(ApplicationPreferences.Current.OutputDirectory) || !Directory.Exists(ApplicationPreferences.Current.OutputDirectory))
+            {
+                ApplicationPreferences.Current.OutputDirectory = Path.Combine(ApplicationPreferences.Current.RootRealmStudioXDirectory, "Output");
+            }
+
             if (string.IsNullOrEmpty(ApplicationPreferences.Current.AutosaveDirectory) || !Directory.Exists(ApplicationPreferences.Current.AutosaveDirectory))
             {
                 ApplicationPreferences.Current.AutosaveDirectory = Path.Combine(ApplicationPreferences.Current.RootRealmsDirectory);

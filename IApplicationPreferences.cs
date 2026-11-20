@@ -23,6 +23,8 @@ public interface IApplicationPreferences : INotifyPropertyChanged
 
     string RootAssetDirectory { get; set; }
 
+    string OutputDirectory { get; set; }
+
     string DefaultModelsDirectory { get; set; }
 
     string DefaultSymbolDirectory { get; set; }
