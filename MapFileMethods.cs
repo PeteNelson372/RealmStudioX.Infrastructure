@@ -24,6 +24,7 @@
 using RealmStudioShapeRenderingLib;
 using RealmStudioShapeRenderingLib.Logging;
 using RealmStudioX.Core;
+using RealmStudioX.Core.Celestial;
 using SkiaSharp;
 using System.Diagnostics;
 using System.IO.Compression;
@@ -395,6 +396,32 @@ namespace RealmStudioX.Infrastructure
             }
 
             return project;
+        }
+
+        public static string SerializeWorldGlobeScene(
+            WorldGlobeSceneDocument scene)
+        {
+            ArgumentNullException.ThrowIfNull(scene);
+
+            return SerializeObject(scene);
+        }
+
+        public static WorldGlobeSceneDocument DeserializeWorldGlobeScene(
+            string xml)
+        {
+            if (string.IsNullOrWhiteSpace(xml))
+                throw new ArgumentException(
+                    "Scene XML cannot be empty.",
+                    nameof(xml));
+
+            WorldGlobeSceneDocument scene =
+                DeserializeObject<WorldGlobeSceneDocument>(xml);
+
+            if (scene.FormatVersion != 1)
+                throw new NotSupportedException(
+                    $"World Globe scene format version '{scene.FormatVersion}' is not supported.");
+
+            return scene;
         }
 
         private static void SaveMap(MapProjectEntry entry, ZipArchive archive)
