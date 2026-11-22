@@ -398,30 +398,21 @@ namespace RealmStudioX.Infrastructure
             return project;
         }
 
-        public static string SerializeWorldGlobeScene(
-            WorldGlobeSceneDocument scene)
+        public static void SaveWorldGlobeSceneDocument(
+            WorldGlobeSceneDocument document,
+            string filePath)
         {
-            ArgumentNullException.ThrowIfNull(scene);
+            string xml = SerializeObject(document);
 
-            return SerializeObject(scene);
+            File.WriteAllText(filePath, xml);
         }
 
-        public static WorldGlobeSceneDocument DeserializeWorldGlobeScene(
-            string xml)
+        public static WorldGlobeSceneDocument LoadWorldGlobeSceneDocument(
+            string filePath)
         {
-            if (string.IsNullOrWhiteSpace(xml))
-                throw new ArgumentException(
-                    "Scene XML cannot be empty.",
-                    nameof(xml));
+            string xml = File.ReadAllText(filePath);
 
-            WorldGlobeSceneDocument scene =
-                DeserializeObject<WorldGlobeSceneDocument>(xml);
-
-            if (scene.FormatVersion != 1)
-                throw new NotSupportedException(
-                    $"World Globe scene format version '{scene.FormatVersion}' is not supported.");
-
-            return scene;
+            return DeserializeObject<WorldGlobeSceneDocument>(xml);
         }
 
         private static void SaveMap(MapProjectEntry entry, ZipArchive archive)
